@@ -49,8 +49,11 @@ paru -S kinopoisk-tv
 ### Прямая установка
 Начиная с v0.1.1 используется не стандартный Electron, а electron44-castlab. Для использования последней версии необходимо:
 1. Установить electron44-castlab:
+   
    AUR (Arch Linux, Arch-based) - установите пакет electron44-castlab-bin,
+   
    Самостоятельная установка - используйте [репозиторий electron castlabs](https://github.com/castlabs/electron-releases/releases/tag/v44.5.1%2Bwvcus)
+   
 2. Скопируйте репозиторий в удобную вам папку.
 3. Запускайте Кинопоиск TV:
 ```bash
