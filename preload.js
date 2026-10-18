@@ -1,30 +1,57 @@
+// Настройка приоритета DRM в данных инициализации Кинопоиска
+let rawSSRData = window.__SSR_DATA__;
+Object.defineProperty(window, '__SSR_DATA__', {
+  get() { return rawSSRData; },
+  set(val) {
+    rawSSRData = val;
+    if (rawSSRData) {
+      // Принудительно ставим Widevine на первое место вместо PlayReady
+      rawSSRData.drmPriority = 'widevine,clear';
+    }
+  },
+  configurable: true
+});
+
+function patchScriptUrl(url) {
+  if (typeof url === 'string') {
+    // Подменяем Tizen-плеер (avplay) на универсальный HTML5 EME плеер (Shaka)
+    if (url.includes('/bundle/tizen.js')) {
+      return url.replace('/bundle/tizen.js', '/bundle/html5.js');
+    }
+  }
+  return url;
+}
+
 const origCreateElement = document.createElement.bind(document);
 document.createElement = function(tagName, ...args) {
   const name = tagName.toLowerCase();
-  if (name === 'object') {
-    const fakeObj = origCreateElement('video', ...args);
-    fakeObj.type = 'video/mp4';
-    return fakeObj;
-  }
   const element = origCreateElement(tagName, ...args);
+
   if (name === 'script') {
     const origSetAttribute = element.setAttribute.bind(element);
     element.setAttribute = function(attr, value) {
-      if (attr.toLowerCase() === 'src' && typeof value === 'string' && value.includes('$WEBAPIS')) {
-        setTimeout(() => {
-          if (typeof element.onload === 'function') element.onload(new Event('load'));
-        }, 0);
-          return;
-      }
-      return origSetAttribute(attr, value);
-    };
-    Object.defineProperty(element, 'src', {
-      set(value) {
-        if (typeof value === 'string' && value.includes('$WEBAPIS')) {
+      if (attr.toLowerCase() === 'src' && typeof value === 'string') {
+        if (value.includes('$WEBAPIS')) {
           setTimeout(() => {
             if (typeof element.onload === 'function') element.onload(new Event('load'));
           }, 0);
+          return;
+        }
+        value = patchScriptUrl(value);
+      }
+      return origSetAttribute(attr, value);
+    };
+
+    Object.defineProperty(element, 'src', {
+      set(value) {
+        if (typeof value === 'string') {
+          if (value.includes('$WEBAPIS')) {
+            setTimeout(() => {
+              if (typeof element.onload === 'function') element.onload(new Event('load'));
+            }, 0);
             return;
+          }
+          value = patchScriptUrl(value);
         }
         element.setAttribute('src', value);
       },
@@ -33,6 +60,7 @@ document.createElement = function(tagName, ...args) {
   }
   return element;
 };
+
 
 let duid = localStorage.getItem('__kp_tizen_duid__');
 if (!duid) {

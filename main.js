@@ -1,20 +1,6 @@
-const { app, BrowserWindow, session, screen } = require('electron');
+const { app, BrowserWindow, session, screen, components } = require('electron');
 const path = require('path');
 const fs = require('fs');
-
-const possibleWidevinePaths = [
-  '/usr/lib/chromium/WidevineCdm/_platform_specific/linux_x64/libwidevinecdm.so',
-'/opt/google/chrome/WidevineCdm/_platform_specific/linux_x64/libwidevinecdm.so',
-'/opt/vivaldi/WidevineCdm/_platform_specific/linux_x64/libwidevinecdm.so'
-];
-
-for (const wPath of possibleWidevinePaths) {
-  if (fs.existsSync(wPath)) {
-    app.commandLine.appendSwitch('widevine-cdm-path', wPath);
-    app.commandLine.appendSwitch('widevine-cdm-version', '4.10.3112.0');
-    break;
-  }
-}
 
 app.commandLine.appendSwitch('disable-web-security');
 app.commandLine.appendSwitch('allow-running-insecure-content');
@@ -25,7 +11,15 @@ app.setPath('userData', path.join(app.getPath('appData'), 'kinopoisktv-data'));
 
 const USER_AGENT = 'Mozilla/5.0 (SMART-TV; Linux; Tizen 7.0) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/5.0 Chrome/108.0.5359.125 TV Safari/537.36';
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  if (components) {
+    try {
+      await components.whenReady();
+      console.log('Widevine components ready');
+    } catch (e) {
+      console.warn('Components initialization warning:', e);
+    }
+  }
   session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
     details.requestHeaders['User-Agent'] = USER_AGENT;
     callback({ cancel: false, requestHeaders: details.requestHeaders });
